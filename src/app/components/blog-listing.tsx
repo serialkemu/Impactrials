@@ -1,4 +1,5 @@
-import { Search, Calendar, User, ArrowRight } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Search, Calendar, User, ArrowRight, SlidersHorizontal, X, MapPin } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface BlogPost {
@@ -18,6 +19,24 @@ interface BlogListingProps {
 }
 
 export function BlogListing({ onViewPost, onSubmitBlog }: BlogListingProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDesktopFilters, setShowDesktopFilters] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  const activeFilterCount = (selectedCategory !== 'All' ? 1 : 0);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowDesktopFilters(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const posts: BlogPost[] = [
     {
       id: 1,
@@ -83,127 +102,306 @@ export function BlogListing({ onViewPost, onSubmitBlog }: BlogListingProps) {
 
   const categories = ['All', 'Volunteer Stories', 'Travel Guides', 'Impact Stories', 'Adventure', 'Culture', 'Sustainable Travel'];
 
+  const filteredPosts = posts.filter((post) => {
+    const categoryMatch = selectedCategory === 'All' || post.category === selectedCategory;
+    const searchMatch =
+      searchQuery === '' ||
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.author.toLowerCase().includes(searchQuery.toLowerCase());
+    return categoryMatch && searchMatch;
+  });
+
+  const featuredPost = filteredPosts[0];
+  const remainingPosts = filteredPosts.slice(1);
+
   return (
     <section className="py-16 sm:py-20 lg:py-24 bg-white">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl text-[#2C2417] mb-4">Blog</h1>
-          <p className="text-lg text-[#6B5D4F] max-w-2xl mx-auto mb-8">
+          <p className="text-lg text-[#5a5249] max-w-2xl mx-auto mb-8">
             Stories, insights, and guides from our community of volunteers and travelers exploring Africa with intention.
           </p>
           <button
             onClick={onSubmitBlog}
-            className="px-6 py-3 bg-[#8B5A3C] text-white rounded-md hover:bg-[#6B4A2C] transition-colors"
+            className="px-6 py-3 bg-[#C25E3E] text-white rounded-md hover:bg-[#a14d32] transition-colors"
           >
             Share Your Story
           </button>
         </div>
 
-        {/* Search and Categories */}
-        <div className="mb-12 space-y-6">
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#6B5D4F]" />
-            <input
-              type="text"
-              placeholder="Search articles..."
-              className="w-full pl-12 pr-4 py-3 bg-[#F5EFE7] border border-[#8B5A3C]/20 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B5A3C]"
-            />
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-3">
-            {categories.map((category) => (
-              <button
-                key={category}
-                className="px-4 py-2 bg-[#F5EFE7] text-[#2C2417] rounded-full hover:bg-[#8B5A3C] hover:text-white transition-colors text-sm"
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Featured Post */}
-        <div
-          onClick={() => onViewPost(posts[0])}
-          className="mb-16 bg-[#F5EFE7] rounded-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-            <div className="h-64 md:h-full">
-              <ImageWithFallback
-                src={posts[0].image}
-                alt={posts[0].title}
-                className="w-full h-full object-cover"
+        {/* Search + Filter Bar */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 max-w-2xl mx-auto">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#5a5249]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search articles..."
+                className="w-full pl-12 pr-4 py-3 bg-[#F7F2E2] border border-[#086770]/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#086770]/30 transition-all"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5a5249] hover:text-[#2C2417] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <div className="p-8 flex flex-col justify-center">
-              <span className="inline-block px-3 py-1 bg-[#8B5A3C] text-white rounded-full text-sm mb-4 self-start">
-                Featured
-              </span>
-              <h2 className="text-3xl text-[#2C2417] mb-4">{posts[0].title}</h2>
-              <p className="text-[#6B5D4F] mb-6 leading-relaxed">{posts[0].excerpt}</p>
-              <div className="flex items-center gap-4 text-sm text-[#6B5D4F]">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>{posts[0].author}</span>
+
+            {/* Desktop Filter Button */}
+            <div className="hidden md:block relative" ref={filterRef}>
+              <button
+                onClick={() => setShowDesktopFilters(!showDesktopFilters)}
+                className={`relative flex items-center gap-2 px-4 py-3 rounded-lg transition-all ${
+                  showDesktopFilters
+                    ? 'bg-[#086770] text-white shadow-md'
+                    : 'bg-white text-[#2C2417] hover:bg-[#F7F2E2] border border-[#086770]/15 shadow-sm'
+                }`}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span className="text-sm">Category</span>
+                {activeFilterCount > 0 && (
+                  <span className={`text-xs w-5 h-5 rounded-full flex items-center justify-center ${
+                    showDesktopFilters ? 'bg-white text-[#086770]' : 'bg-[#C25E3E] text-white'
+                  }`}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Desktop Dropdown */}
+              {showDesktopFilters && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-[#086770]/10 p-5 z-50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[#2C2417]">Filter by Category</h3>
+                    {activeFilterCount > 0 && (
+                      <button
+                        onClick={() => setSelectedCategory('All')}
+                        className="text-xs text-[#C25E3E] hover:text-[#a14d32] transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+                          selectedCategory === category
+                            ? 'bg-[#086770] text-white shadow-sm'
+                            : 'bg-[#F7F2E2] text-[#2C2417] hover:bg-[#E8D5B9]'
+                        }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-[#086770]/10">
+                    <button
+                      onClick={() => setShowDesktopFilters(false)}
+                      className="w-full py-2 bg-[#086770] text-white rounded-lg hover:bg-[#065660] transition-colors text-sm"
+                    >
+                      Show {filteredPosts.length} {filteredPosts.length === 1 ? 'article' : 'articles'}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{new Date(posts[0].date).toLocaleDateString()}</span>
-                </div>
-                <span>{posts[0].readTime}</span>
+              )}
+            </div>
+
+            {/* Mobile Filter Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`md:hidden flex items-center gap-2 px-4 py-3 rounded-lg transition-all ${
+                showFilters
+                  ? 'bg-[#086770] text-white shadow-md'
+                  : 'bg-white text-[#2C2417] border border-[#086770]/15 shadow-sm'
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              {activeFilterCount > 0 && (
+                <span className={`text-xs w-5 h-5 rounded-full flex items-center justify-center ${
+                  showFilters ? 'bg-white text-[#086770]' : 'bg-[#C25E3E] text-white'
+                }`}>
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Filter Dropdown */}
+          {showFilters && (
+            <div className="md:hidden mt-4 max-w-2xl mx-auto bg-white p-4 rounded-lg border border-[#086770]/10 shadow-lg">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-[#5a5249]">Category</label>
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={() => setSelectedCategory('All')}
+                    className="text-xs text-[#C25E3E] hover:text-[#a14d32] transition-colors"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+                      selectedCategory === category
+                        ? 'bg-[#086770] text-white shadow-sm'
+                        : 'bg-[#F7F2E2] text-[#2C2417] hover:bg-[#E8D5B9]'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Active filter badges */}
+          {(selectedCategory !== 'All' || searchQuery) && (
+            <div className="flex items-center justify-center gap-3 mt-4">
+              {selectedCategory !== 'All' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#086770]/10 text-[#086770] rounded-full text-sm">
+                  {selectedCategory}
+                  <button
+                    onClick={() => setSelectedCategory('All')}
+                    className="hover:bg-[#086770]/20 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#086770]/10 text-[#086770] rounded-full text-sm">
+                  "{searchQuery}"
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="hover:bg-[#086770]/20 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              <button
+                onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
+                className="text-sm text-[#C25E3E] hover:text-[#a14d32] transition-colors underline underline-offset-2"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Recent Posts Grid */}
-        <div>
-          <h2 className="text-2xl text-[#2C2417] mb-8">Recent Posts</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.slice(1).map((post) => (
+        {filteredPosts.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-[#5a5249] text-lg mb-2">No articles found.</p>
+            <p className="text-sm text-[#5a5249]">Try adjusting your search or filters.</p>
+          </div>
+        ) : (
+          <>
+            {/* Featured Post */}
+            {featuredPost && (
               <div
-                key={post.id}
-                onClick={() => onViewPost(post)}
-                className="bg-white rounded-lg overflow-hidden border border-[#8B5A3C]/10 hover:shadow-xl transition-shadow cursor-pointer group"
+                onClick={() => onViewPost(featuredPost)}
+                className="mb-16 bg-[#F7F2E2] rounded-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
               >
-                <div className="h-48 overflow-hidden">
-                  <ImageWithFallback
-                    src={post.image}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                <div className="p-6">
-                  <span className="inline-block px-3 py-1 bg-[#F5EFE7] text-[#8B5A3C] rounded-full text-xs mb-3">
-                    {post.category}
-                  </span>
-                  <h3 className="text-xl text-[#2C2417] mb-3 group-hover:text-[#8B5A3C] transition-colors">
-                    {post.title}
-                  </h3>
-                  <p className="text-sm text-[#6B5D4F] mb-4 leading-relaxed line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-[#6B5D4F]">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3 h-3" />
-                      <span>{new Date(post.date).toLocaleDateString()}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                  <div className="h-64 md:h-full">
+                    <ImageWithFallback
+                      src={featuredPost.image}
+                      alt={featuredPost.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-8 flex flex-col justify-center">
+                    <span className="inline-block px-3 py-1 bg-[#086770] text-white rounded-full text-sm mb-4 self-start">
+                      Featured
+                    </span>
+                    <h2 className="text-3xl text-[#2C2417] mb-4">{featuredPost.title}</h2>
+                    <p className="text-[#5a5249] mb-6 leading-relaxed">{featuredPost.excerpt}</p>
+                    <div className="flex items-center gap-4 text-sm text-[#5a5249]">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        <span>{featuredPost.author}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>{new Date(featuredPost.date).toLocaleDateString()}</span>
+                      </div>
+                      <span>{featuredPost.readTime}</span>
                     </div>
-                    <span>{post.readTime}</span>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
+
+            {/* Recent Posts Grid */}
+            {remainingPosts.length > 0 && (
+              <div>
+                <h2 className="text-2xl text-[#2C2417] mb-8">Recent Posts</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {remainingPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      onClick={() => onViewPost(post)}
+                      className="bg-white rounded-lg overflow-hidden border border-[#086770]/10 hover:shadow-xl transition-shadow cursor-pointer group"
+                    >
+                      <div className="h-48 overflow-hidden">
+                        <ImageWithFallback
+                          src={post.image}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <span className="inline-block px-3 py-1 bg-[#F7F2E2] text-[#086770] rounded-full text-xs mb-3">
+                          {post.category}
+                        </span>
+                        <h3 className="text-xl text-[#2C2417] mb-3 group-hover:text-[#086770] transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="text-sm text-[#5a5249] mb-4 leading-relaxed line-clamp-3">
+                          {post.excerpt}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-[#5a5249]">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3 h-3" />
+                            <span>{new Date(post.date).toLocaleDateString()}</span>
+                          </div>
+                          <span>{post.readTime}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Load More */}
-        <div className="text-center mt-12">
-          <button className="px-8 py-3 bg-[#F5EFE7] text-[#2C2417] rounded-md hover:bg-[#8B5A3C] hover:text-white transition-colors flex items-center gap-2 mx-auto">
-            Load More Articles
-            <ArrowRight className="w-5 h-5" />
-          </button>
-        </div>
+        {filteredPosts.length > 0 && (
+          <div className="text-center mt-12">
+            <button className="px-8 py-3 bg-[#F7F2E2] text-[#2C2417] rounded-md hover:bg-[#086770] hover:text-white transition-colors flex items-center gap-2 mx-auto">
+              Load More Articles
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
