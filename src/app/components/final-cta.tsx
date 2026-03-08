@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 export function FinalCTA() {
